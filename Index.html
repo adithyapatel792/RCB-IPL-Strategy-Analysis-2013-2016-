@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RCB IPL Strategy Analysis — Adithya Patel | SQL Portfolio</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ── TOKENS ──────────────────────────────────────── */
+:root {
+  --red:    #d72638;
+  --gold:   #f5a623;
+  --dark:   #0a0c10;
+  --surface:#111418;
+  --card:   #161b22;
+  --border: #21262d;
+  --border2:#30363d;
+  --text:   #e6edf3;
+  --muted:  #7d8590;
+  --green:  #3fb950;
+  --blue:   #58a6ff;
+  --glow-r: rgba(215,38,56,.18);
+  --glow-g: rgba(245,166,35,.12);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--dark);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  line-height:1.6;
+  overflow-x:hidden;
+}
+
+/* ── NOISE TEXTURE ───────────────────────────────── */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;opacity:.6;
+}
+
+/* ── NAV ─────────────────────────────────────────── */
+nav{
+  position:sticky;top:0;z-index:200;
+  background:rgba(10,12,16,.9);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 2rem;height:60px;
+}
+.nav-brand{
+  display:flex;align-items:center;gap:.75rem;
+}
+.nav-dot{
+  width:10px;height:10px;border-radius:50%;
+  background:var(--red);
+  box-shadow:0 0 8px var(--red);
+  animation:blink 2s ease-in-out infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.nav-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.25rem;letter-spacing:.08em;
+  color:var(--text);
+}
+.nav-title span{color:var(--red);}
+.nav-links{display:flex;gap:1.5rem;list-style:none;}
+.nav-links a{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.72rem;color:var(--muted);
+  text-decoration:none;
+  letter-spacing:.05em;text-transform:uppercase;
+  transition:color .2s;
+}
+.nav-links a:hover{color:var(--gold);}
+.nav-pill{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.7rem;padding:4px 12px;border-radius:20px;
+  background:rgba(215,38,56,.12);
+  border:1px solid rgba(215,38,56,.35);
+  color:var(--red);letter-spacing:.05em;
+}
+
+/* ── HERO ────────────────────────────────────────── */
+.hero{
+  position:relative;z-index:1;
+  min-height:92vh;
+  display:flex;align-items:center;
+  padding:4rem 2rem;
+  overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;
+  top:-200px;right:-200px;
+  width:700px;height:700px;
+  background:radial-gradient(circle, rgba(215,38,56,.12) 0%, transparent 65%);
+  pointer-events:none;
+}
+.hero::after{
+  content:'';position:absolute;
+  bottom:-100px;left:-100px;
+  width:500px;height:500px;
+  background:radial-gradient(circle, rgba(245,166,35,.07) 0%, transparent 65%);
+  pointer-events:none;
+}
+.hero-inner{
+  max-width:1200px;margin:0 auto;width:100%;
+  display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center;
+}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:.5rem;
+  font-family:'JetBrains Mono',monospace;font-size:.72rem;
+  letter-spacing:.12em;text-transform:uppercase;
+  color:var(--gold);
+  background:rgba(245,166,35,.08);
+  border:1px solid rgba(245,166,35,.25);
+  padding:5px 14px;border-radius:20px;
+  margin-bottom:1.5rem;
+}
+.hero-eyebrow::before{content:'▶';font-size:.6rem;}
+.hero h1{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(3.5rem,8vw,6.5rem);
+  line-height:.95;letter-spacing:.02em;
+  margin-bottom:1.5rem;
+}
+.hero h1 .line1{color:var(--text);}
+.hero h1 .line2{color:var(--red);display:block;}
+.hero h1 .line3{color:var(--gold);display:block;font-size:70%;}
+.hero-desc{
+  font-size:.95rem;color:var(--muted);
+  max-width:460px;line-height:1.8;
+  margin-bottom:2rem;
+}
+.hero-tags{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:2.5rem;}
+.tag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.7rem;padding:4px 10px;border-radius:6px;
+  border:1px solid var(--border2);color:var(--muted);
+  transition:border-color .2s,color .2s;
+}
+.tag:hover{border-color:var(--blue);color:var(--blue);}
+.tag.sql{border-color:rgba(88,166,255,.35);color:var(--blue);}
+.tag.rcb{border-color:rgba(215,38,56,.35);color:var(--red);}
+.hero-ctas{display:flex;gap:1rem;flex-wrap:wrap;}
+.btn-primary{
+  font-family:'Inter',sans-serif;font-weight:600;
+  font-size:.85rem;padding:11px 24px;border-radius:8px;
+  background:var(--red);color:#fff;
+  border:none;cursor:pointer;
+  text-decoration:none;display:inline-flex;align-items:center;gap:.5rem;
+  transition:opacity .2s,transform .15s;
+  letter-spacing:.02em;
+}
+.btn-primary:hover{opacity:.88;transform:translateY(-1px);}
+.btn-ghost{
+  font-family:'Inter',sans-serif;font-weight:500;
+  font-size:.85rem;padding:11px 24px;border-radius:8px;
+  background:transparent;color:var(--text);
+  border:1px solid var(--border2);cursor:pointer;
+  text-decoration:none;display:inline-flex;align-items:center;gap:.5rem;
+  transition:border-color .2s,transform .15s;
+}
+.btn-ghost:hover{border-color:var(--text);transform:translateY(-1px);}
+
+/* hero right — stat cards */
+.hero-stats-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:1rem;
+}
+.stat-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;padding:1.5rem;
+  position:relative;overflow:hidden;
+  transition:border-color .2s,transform .2s;
+}
+.stat-card:hover{border-color:var(--border2);transform:translateY(-2px);}
+.stat-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--sc-color,var(--red));
+  border-radius:12px 12px 0 0;
+}
+.stat-val{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:2.4rem;letter-spacing:.02em;
+  color:var(--sc-color,var(--red));line-height:1;
+}
+.stat-lbl{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.68rem;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.08em;
+  margin-top:.3rem;
+}
+.stat-sub{font-size:.78rem;color:var(--muted);margin-top:.2rem;}
+
+/* ── SECTION LAYOUT ──────────────────────────────── */
+.section{
+  position:relative;z-index:1;
+  max-width:1200px;margin:0 auto;
+  padding:4rem 2rem;
+}
+.section-header{
+  display:flex;align-items:center;gap:1rem;margin-bottom:2.5rem;
+}
+.sec-num{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.68rem;color:var(--red);
+  border:1px solid rgba(215,38,56,.35);
+  padding:2px 8px;border-radius:4px;letter-spacing:.1em;
+}
+.sec-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.8rem;letter-spacing:.04em;color:var(--text);
+}
+.sec-sub{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.72rem;color:var(--muted);letter-spacing:.05em;
+}
+.sec-line{flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent);}
+
+/* ── DIVIDER ─────────────────────────────────────── */
+.divider{
+  border:none;
+  border-top:1px solid var(--border);
+  max-width:1200px;margin:0 auto;
+}
+
+/* ── SQL VIEWER ──────────────────────────────────── */
+.sql-tabs{
+  display:flex;gap:.5rem;flex-wrap:wrap;
+  margin-bottom:-1px;
+}
+.sql-tab{
+  font-family:'JetBrains Mono',monospace;font-size:.75rem;
+  padding:8px 16px;border-radius:8px 8px 0 0;
+  background:var(--surface);
+  border:1px solid var(--border);border-bottom:none;
+  color:var(--muted);cursor:pointer;
+  transition:color .2s,background .2s;
+  letter-spacing:.03em;
+}
+.sql-tab.active{
+  background:var(--card);
+  color:var(--gold);border-color:var(--border2);
+}
+.sql-tab:hover:not(.active){color:var(--text);}
+.sql-block{
+  background:var(--card);
+  border:1px solid var(--border2);
+  border-radius:0 12px 12px 12px;
+  padding:1.5rem;
+  position:relative;
+  overflow:hidden;
+}
+.sql-block pre{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.8rem;line-height:1.7;
+  color:#a5d6ff;
+  white-space:pre-wrap;word-break:break-word;
+  max-height:320px;overflow-y:auto;
+}
+/* SQL syntax */
+.kw{color:#ff7b72;}
+.fn{color:#d2a8ff;}
+.cm{color:#8b949e;font-style:italic;}
+.st{color:#a5d6ff;}
+.nm{color:#f0883e;}
+
+.copy-btn{
+  position:absolute;top:1rem;right:1rem;
+  font-family:'JetBrains Mono',monospace;font-size:.7rem;
+  padding:4px 12px;border-radius:6px;
+  background:rgba(255,255,255,.06);border:1px solid var(--border2);
+  color:var(--muted);cursor:pointer;
+  transition:color .2s,border-color .2s;
+  letter-spacing:.05em;
+}
+.copy-btn:hover{color:var(--text);border-color:var(--border);}
+.sql-result{display:none;}
+.sql-result.active{display:block;}
+
+/* ── CHARTS GRID ─────────────────────────────────── */
+.charts-grid{
+  display:grid;gap:1.5rem;
+  grid-template-columns:repeat(auto-fit,minmax(340px,1fr));
+}
+.chart-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:1.5rem;
+  transition:border-color .2s,box-shadow .2s;
+}
+.chart-card:hover{
+  border-color:var(--border2);
+  box-shadow:0 4px 24px rgba(0,0,0,.4);
+}
+.chart-card.wide{grid-column:1/-1;}
+.cc-header{margin-bottom:1rem;}
+.cc-title{
+  font-weight:600;font-size:.95rem;margin-bottom:.2rem;
+}
+.cc-query{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.68rem;color:var(--red);letter-spacing:.06em;
+}
+canvas{max-height:260px;}
+
+/* ── FINDING CARDS ───────────────────────────────── */
+.findings-grid{
+  display:grid;gap:1.5rem;
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+}
+.finding-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:1.75rem;
+  position:relative;overflow:hidden;
+  transition:transform .2s,border-color .2s;
+}
+.finding-card:hover{transform:translateY(-2px);border-color:var(--border2);}
+.finding-num{
+  font-family:'Bebas Neue',sans-serif;font-size:3.5rem;
+  color:rgba(215,38,56,.12);position:absolute;top:.5rem;right:1rem;
+  line-height:1;pointer-events:none;letter-spacing:.02em;
+}
+.finding-icon{font-size:1.5rem;margin-bottom:.75rem;}
+.finding-title{
+  font-weight:700;font-size:1rem;margin-bottom:.5rem;color:var(--text);
+}
+.finding-body{font-size:.85rem;color:var(--muted);line-height:1.7;}
+.finding-highlight{
+  display:inline-block;margin-top:.75rem;
+  font-family:'JetBrains Mono',monospace;font-size:.75rem;
+  padding:4px 10px;border-radius:6px;
+  background:rgba(245,166,35,.1);
+  border:1px solid rgba(245,166,35,.25);
+  color:var(--gold);
+}
+
+/* ── PLAYER TABLE ────────────────────────────────── */
+.table-wrap{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;overflow:hidden;margin-top:1.5rem;
+}
+.table-toolbar{
+  padding:1rem 1.5rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;
+}
+.tt-left{
+  font-weight:600;font-size:.9rem;display:flex;align-items:center;gap:.75rem;
+}
+.tt-badge{
+  font-family:'JetBrains Mono',monospace;font-size:.68rem;
+  padding:3px 10px;border-radius:10px;
+  background:rgba(215,38,56,.12);border:1px solid rgba(215,38,56,.3);
+  color:var(--red);
+}
+.tt-right{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;}
+.search-box{
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.78rem;
+  padding:7px 14px;border-radius:8px;outline:none;
+  transition:border-color .2s;width:180px;
+}
+.search-box:focus{border-color:var(--gold);}
+.search-box::placeholder{color:var(--muted);}
+.filter-sel{
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.78rem;
+  padding:7px 12px;border-radius:8px;cursor:pointer;outline:none;
+  transition:border-color .2s;
+}
+.filter-sel:hover,.filter-sel:focus{border-color:var(--blue);}
+.data-table{width:100%;border-collapse:collapse;}
+.data-table th{
+  background:var(--surface);
+  font-family:'JetBrains Mono',monospace;
+  font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);padding:10px 16px;text-align:left;
+  border-bottom:1px solid var(--border);
+  cursor:pointer;user-select:none;white-space:nowrap;
+}
+.data-table th:hover{color:var(--gold);}
+.data-table td{
+  padding:10px 16px;font-family:'JetBrains Mono',monospace;
+  font-size:.8rem;border-bottom:1px solid rgba(33,38,45,.6);
+  white-space:nowrap;
+}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:hover td{background:rgba(215,38,56,.04);}
+.role-badge{
+  display:inline-block;padding:2px 8px;border-radius:8px;
+  font-size:.68rem;
+}
+.role-bat{background:rgba(88,166,255,.12);color:var(--blue);}
+.role-bowl{background:rgba(63,185,80,.12);color:var(--green);}
+.role-all{background:rgba(245,166,35,.12);color:var(--gold);}
+.bar-cell{display:flex;align-items:center;gap:.5rem;}
+.mini-bar{width:70px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.mini-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--red),var(--gold));}
+.tpag{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1rem 1.5rem;border-top:1px solid var(--border);
+  font-family:'JetBrains Mono',monospace;font-size:.75rem;
+}
+.tpag-info{color:var(--muted);}
+.tpag-btns{display:flex;gap:.4rem;}
+.pg-btn{
+  padding:4px 12px;border-radius:6px;
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text);cursor:pointer;font-family:'JetBrains Mono',monospace;
+  font-size:.73rem;transition:border-color .2s,color .2s;
+}
+.pg-btn:hover:not(:disabled){border-color:var(--gold);color:var(--gold);}
+.pg-btn:disabled{opacity:.35;cursor:not-allowed;}
+.pg-btn.active{background:rgba(215,38,56,.1);border-color:var(--red);color:var(--red);}
+
+/* ── RECOMMENDATIONS ─────────────────────────────── */
+.recs-grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));}
+.rec-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:1.5rem;
+  display:flex;gap:1rem;
+  transition:border-color .2s,transform .2s;
+}
+.rec-card:hover{border-color:var(--border2);transform:translateY(-2px);}
+.rec-priority{
+  font-family:'Bebas Neue',sans-serif;font-size:.7rem;
+  letter-spacing:.1em;padding:3px 10px;border-radius:6px;
+  align-self:flex-start;flex-shrink:0;margin-top:.15rem;
+}
+.pri-must{background:rgba(215,38,56,.15);color:var(--red);}
+.pri-high{background:rgba(245,166,35,.15);color:var(--gold);}
+.pri-med{background:rgba(88,166,255,.15);color:var(--blue);}
+.pri-low{background:rgba(63,185,80,.15);color:var(--green);}
+.rec-body{}
+.rec-player{font-weight:700;font-size:.95rem;margin-bottom:.25rem;}
+.rec-role{
+  font-family:'JetBrains Mono',monospace;font-size:.7rem;
+  color:var(--muted);margin-bottom:.5rem;
+}
+.rec-data{font-size:.82rem;color:var(--muted);line-height:1.6;}
+.rec-impact{
+  display:inline-block;margin-top:.5rem;
+  font-family:'JetBrains Mono',monospace;font-size:.7rem;
+  color:var(--green);
+}
+.rec-impact::before{content:'→ ';}
+
+/* ── METHODOLOGY ─────────────────────────────────── */
+.method-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.75rem;}
+.method-step{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:10px;padding:1.25rem 1rem;
+  text-align:center;position:relative;
+  transition:border-color .2s;
+}
+.method-step:hover{border-color:var(--red);}
+.method-num{
+  font-family:'Bebas Neue',sans-serif;font-size:2rem;
+  color:rgba(215,38,56,.25);line-height:1;
+}
+.method-icon{font-size:1.4rem;margin:.3rem 0;}
+.method-title{font-weight:600;font-size:.8rem;margin-bottom:.4rem;color:var(--text);}
+.method-desc{font-size:.73rem;color:var(--muted);line-height:1.5;}
+
+/* ── SQL FUNCTIONS BAR ───────────────────────────── */
+.fn-row{
+  display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.5rem;
+}
+.fn-chip{
+  font-family:'JetBrains Mono',monospace;font-size:.72rem;
+  padding:5px 12px;border-radius:6px;
+  background:rgba(210,168,255,.08);border:1px solid rgba(210,168,255,.2);
+  color:#d2a8ff;letter-spacing:.03em;
+  transition:background .2s;
+}
+.fn-chip:hover{background:rgba(210,168,255,.15);}
+
+/* ── SEASON TABLE ────────────────────────────────── */
+.season-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;
+  margin-top:1.5rem;
+}
+.season-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:1.5rem;
+  text-align:center;
+  transition:border-color .2s;
+}
+.season-card:hover{border-color:var(--border2);}
+.season-year{
+  font-family:'Bebas Neue',sans-serif;font-size:2.2rem;
+  color:var(--gold);letter-spacing:.04em;line-height:1;
+}
+.season-stat{margin-top:.75rem;}
+.ss-val{font-weight:700;font-size:1.1rem;color:var(--text);}
+.ss-lbl{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+.season-note{font-size:.75rem;color:var(--muted);margin-top:.75rem;line-height:1.4;}
+.win-bar{
+  height:4px;border-radius:2px;margin-top:.75rem;
+  background:var(--border);overflow:hidden;
+}
+.win-fill{height:100%;border-radius:2px;background:var(--red);}
+
+/* ── ABOUT ───────────────────────────────────────── */
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;}
+.about-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:1.75rem;
+}
+.about-card h3{
+  font-family:'Bebas Neue',sans-serif;font-size:1.2rem;
+  letter-spacing:.04em;color:var(--red);margin-bottom:1rem;
+}
+.about-card p{font-size:.875rem;color:var(--muted);line-height:1.75;}
+.schema-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;
+  margin-top:1rem;
+}
+.schema-item{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:6px;padding:.5rem .75rem;
+  font-family:'JetBrains Mono',monospace;font-size:.7rem;
+  color:var(--muted);
+  transition:border-color .2s,color .2s;
+}
+.schema-item:hover{border-color:var(--blue);color:var(--blue);}
+
+/* ── QUOTE ───────────────────────────────────────── */
+.quote-block{
+  background:linear-gradient(135deg,rgba(215,38,56,.08),rgba(245,166,35,.05));
+  border:1px solid rgba(215,38,56,.25);
+  border-left:4px solid var(--red);
+  border-radius:0 12px 12px 0;
+  padding:2rem 2.5rem;
+  text-align:center;
+  margin:0 auto;max-width:800px;
+}
+.quote-text{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(1.2rem,3vw,1.8rem);
+  letter-spacing:.03em;color:var(--text);
+  line-height:1.3;
+}
+.quote-text span{color:var(--gold);}
+.quote-attr{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.72rem;color:var(--muted);
+  margin-top:.75rem;letter-spacing:.06em;
+}
+
+/* ── FOOTER ──────────────────────────────────────── */
+footer{
+  position:relative;z-index:1;
+  border-top:1px solid var(--border);
+  padding:2rem;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:1rem;
+  max-width:1200px;margin:0 auto;
+}
+.footer-left{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.75rem;color:var(--muted);
+}
+.footer-left strong{color:var(--text);}
+.footer-right{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.72rem;color:var(--muted);
+  display:flex;gap:1.5rem;
+}
+.footer-right a{color:var(--muted);text-decoration:none;transition:color .2s;}
+.footer-right a:hover{color:var(--red);}
+
+/* ── TOOLTIP ─────────────────────────────────────── */
+[data-tip]{position:relative;cursor:help;}
+[data-tip]::after{
+  content:attr(data-tip);
+  position:absolute;bottom:130%;left:50%;transform:translateX(-50%);
+  background:var(--card);color:var(--text);
+  border:1px solid var(--border2);
+  font-family:'JetBrains Mono',monospace;font-size:.7rem;
+  padding:5px 10px;border-radius:6px;white-space:nowrap;
+  pointer-events:none;opacity:0;
+  transition:opacity .2s;z-index:50;
+}
+[data-tip]:hover::after{opacity:1;}
+
+/* ── RESPONSIVE ──────────────────────────────────── */
+@media(max-width:900px){
+  .hero-inner{grid-template-columns:1fr;}
+  .hero-stats-grid{grid-template-columns:repeat(4,1fr);}
+  .method-grid{grid-template-columns:repeat(3,1fr);}
+  .season-grid{grid-template-columns:1fr 1fr;}
+  .about-grid{grid-template-columns:1fr;}
+}
+@media(max-width:600px){
+  nav{padding:0 1rem;}
+  .nav-links{display:none;}
+  .hero h1{font-size:3rem;}
+  .hero-stats-grid{grid-template-columns:1fr 1fr;}
+  .method-grid{grid-template-columns:1fr 1fr;}
+  .season-grid{grid-template-columns:1fr 1fr;}
+  .schema-grid{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">
+    <div class="nav-dot"></div>
+    <div class="nav-title"><span>RCB</span> IPL Strategy</div>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#findings">Findings</a></li>
+    <li><a href="#sql">SQL Queries</a></li>
+    <li><a href="#players">Players</a></li>
+    <li><a href="#recommendations">Strategy</a></li>
+    <li><a href="#about">About</a></li>
+  </ul>
+  <div class="nav-pill">SQL Portfolio</div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="hero-eyebrow">SQL Data Analysis Portfolio · Newton School · March 2026</div>
+      <h1>
+        <span class="line1">RCB IPL</span>
+        <span class="line2">Strategy</span>
+        <span class="line3">Analysis</span>
+      </h1>
+      <p class="hero-desc">
+        Transforming 4 seasons of ball-by-ball IPL data into actionable squad-building intelligence.
+        255 matches · 60,223 deliveries · 15+ SQL queries · One clear blueprint.
+      </p>
+      <div class="hero-tags">
+        <span class="tag sql">MySQL</span>
+        <span class="tag sql">CTEs</span>
+        <span class="tag sql">Window Functions</span>
+        <span class="tag sql">JOINs</span>
+        <span class="tag sql">RANK()</span>
+        <span class="tag rcb">RCB</span>
+        <span class="tag">IPL 2013–2016</span>
+        <span class="tag">Data Analytics</span>
+      </div>
+      <div class="hero-ctas">
+        <a href="#findings" class="btn-primary">▶ Explore Findings</a>
+        <a href="#sql" class="btn-ghost">{ } View SQL Queries</a>
+      </div>
+    </div>
+    <div class="hero-stats-grid">
+      <div class="stat-card" style="--sc-color:#d72638">
+        <div class="stat-val">255</div>
+        <div class="stat-lbl">Matches</div>
+        <div class="stat-sub">2013–2016 seasons</div>
+      </div>
+      <div class="stat-card" style="--sc-color:#f5a623">
+        <div class="stat-val">60K+</div>
+        <div class="stat-lbl">Deliveries</div>
+        <div class="stat-sub">Ball-by-ball granularity</div>
+      </div>
+      <div class="stat-card" style="--sc-color:#58a6ff">
+        <div class="stat-val">469</div>
+        <div class="stat-lbl">Players</div>
+        <div class="stat-sub">Across all teams</div>
+      </div>
+      <div class="stat-card" style="--sc-color:#3fb950">
+        <div class="stat-val">20</div>
+        <div class="stat-lbl">DB Tables</div>
+        <div class="stat-sub">Fully relational schema</div>
+      </div>
+      <div class="stat-card" style="--sc-color:#d2a8ff">
+        <div class="stat-val">15+</div>
+        <div class="stat-lbl">SQL Queries</div>
+        <div class="stat-sub">CTEs, window fns, JOINs</div>
+      </div>
+      <div class="stat-card" style="--sc-color:#d72638">
+        <div class="stat-val">2,943</div>
+        <div class="stat-lbl">Wickets</div>
+        <div class="stat-sub">Total in dataset</div>
+      </div>
+      <div class="stat-card" style="--sc-color:#f5a623">
+        <div class="stat-val">164</div>
+        <div class="stat-lbl">ABD Strike Rate</div>
+        <div class="stat-sub">Top dual-threat player</div>
+      </div>
+      <div class="stat-card" style="--sc-color:#3fb950">
+        <div class="stat-val">54.97%</div>
+        <div class="stat-lbl">Field-First Win %</div>
+        <div class="stat-sub">vs 42.86% bat-first</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- METHODOLOGY -->
+<div class="section" id="methodology">
+  <div class="section-header">
+    <span class="sec-num">00</span>
+    <span class="sec-title">Methodology</span>
+    <span class="sec-sub">How raw SQL data became cricket strategy</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="method-grid">
+    <div class="method-step">
+      <div class="method-num">01</div>
+      <div class="method-icon">🗄️</div>
+      <div class="method-title">Data Loading</div>
+      <div class="method-desc">Imported ipl_1.sql + ipl_2.sql into MySQL Workbench. Verified 20 tables and 72,000+ INSERTs.</div>
+    </div>
+    <div class="method-step">
+      <div class="method-num">02</div>
+      <div class="method-icon">🔍</div>
+      <div class="method-title">Data Exploration</div>
+      <div class="method-desc">Used INFORMATION_SCHEMA to inspect column types and verify row counts across all tables.</div>
+    </div>
+    <div class="method-step">
+      <div class="method-num">03</div>
+      <div class="method-icon">💻</div>
+      <div class="method-title">Query Analysis</div>
+      <div class="method-desc">Wrote 15+ queries using CTEs, window functions (LAG, RANK, OVER PARTITION), CASE, COALESCE.</div>
+    </div>
+    <div class="method-step">
+      <div class="method-num">04</div>
+      <div class="method-icon">📊</div>
+      <div class="method-title">Insight Extraction</div>
+      <div class="method-desc">Cross-referenced outputs: strike rate vs volume trade-offs, bowling efficiency, venue patterns.</div>
+    </div>
+    <div class="method-step">
+      <div class="method-num">05</div>
+      <div class="method-icon">🏆</div>
+      <div class="method-title">Recommendations</div>
+      <div class="method-desc">Synthesised findings into a prioritised RCB mega-auction plan backed by measurable query outputs.</div>
+    </div>
+  </div>
+  <div class="fn-row">
+    <span class="fn-chip">JOIN</span>
+    <span class="fn-chip">CTE (WITH)</span>
+    <span class="fn-chip">LAG()</span>
+    <span class="fn-chip">RANK()</span>
+    <span class="fn-chip">OVER PARTITION</span>
+    <span class="fn-chip">COALESCE()</span>
+    <span class="fn-chip">CASE WHEN</span>
+    <span class="fn-chip">GROUP BY + HAVING</span>
+    <span class="fn-chip">STDDEV()</span>
+    <span class="fn-chip">TIMESTAMPDIFF()</span>
+    <span class="fn-chip">INFORMATION_SCHEMA</span>
+    <span class="fn-chip">SUBQUERY</span>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- SQL QUERIES VIEWER -->
+<div class="section" id="sql">
+  <div class="section-header">
+    <span class="sec-num">01</span>
+    <span class="sec-title">SQL Query Library</span>
+    <span class="sec-sub">Click a query to inspect the code</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="sql-tabs" id="sqlTabs">
+    <button class="sql-tab active" onclick="showQuery(0)">Q5 — Strike Rate</button>
+    <button class="sql-tab" onclick="showQuery(1)">Q6 — Seasonal Avg</button>
+    <button class="sql-tab" onclick="showQuery(2)">Q7 — Bowlers</button>
+    <button class="sql-tab" onclick="showQuery(3)">Q8 — All-Rounders</button>
+    <button class="sql-tab" onclick="showQuery(4)">Q9 — Venue Record</button>
+    <button class="sql-tab" onclick="showQuery(5)">Q10 — Bowl Style</button>
+    <button class="sql-tab" onclick="showQuery(6)">Q11 — YoY Trend</button>
+    <button class="sql-tab" onclick="showQuery(7)">Q14 — Consistency</button>
+    <button class="sql-tab" onclick="showQuery(8)">SQ1 — Toss Impact</button>
+  </div>
+  <div class="sql-block">
+    <button class="copy-btn" onclick="copySQL()">Copy</button>
+    <div id="sqlDisplay"></div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- CHARTS / FINDINGS -->
+<div class="section" id="findings">
+  <div class="section-header">
+    <span class="sec-num">02</span>
+    <span class="sec-title">Data Findings</span>
+    <span class="sec-sub">5 key findings from 15+ SQL queries</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="charts-grid">
+
+    <!-- Strike Rate -->
+    <div class="chart-card">
+      <div class="cc-header">
+        <div class="cc-title">Top 7 — Strike Rate (2013–2016)</div>
+        <div class="cc-query">Q5 · Strike Rate Analysis</div>
+      </div>
+      <canvas id="cSR"></canvas>
+    </div>
+
+    <!-- Seasonal Avg -->
+    <div class="chart-card">
+      <div class="cc-header">
+        <div class="cc-title">Top 5 — Avg Runs Per Season</div>
+        <div class="cc-query">Q6 · Seasonal Batting Average</div>
+      </div>
+      <canvas id="cAvg"></canvas>
+    </div>
+
+    <!-- Bowling Wickets -->
+    <div class="chart-card">
+      <div class="cc-header">
+        <div class="cc-title">Top 7 Bowlers — Avg Wickets/Season</div>
+        <div class="cc-query">Q7 · Bowler Wicket Analysis</div>
+      </div>
+      <canvas id="cBowl"></canvas>
+    </div>
+
+    <!-- Bowling Style -->
+    <div class="chart-card">
+      <div class="cc-header">
+        <div class="cc-title">Wickets by Bowling Style</div>
+        <div class="cc-query">Q10 · Bowling Style Effectiveness</div>
+      </div>
+      <canvas id="cStyle"></canvas>
+    </div>
+
+    <!-- Toss -->
+    <div class="chart-card">
+      <div class="cc-header">
+        <div class="cc-title">Toss Decision vs Win Rate</div>
+        <div class="cc-query">SQ1 · Toss Advantage Analysis</div>
+      </div>
+      <canvas id="cToss"></canvas>
+    </div>
+
+    <!-- Venue -->
+    <div class="chart-card">
+      <div class="cc-header">
+        <div class="cc-title">RCB Record by Venue</div>
+        <div class="cc-query">Q9 · Venue Performance Record</div>
+      </div>
+      <canvas id="cVenue"></canvas>
+    </div>
+
+    <!-- YoY Wide -->
+    <div class="chart-card wide">
+      <div class="cc-header">
+        <div class="cc-title">RCB Year-on-Year: Runs vs Wickets — The Trophy-Drought Pattern</div>
+        <div class="cc-query">Q11 · Year-on-Year Trend Analysis</div>
+      </div>
+      <canvas id="cYoY" style="max-height:200px"></canvas>
+    </div>
+
+  </div>
+
+  <!-- Finding Cards -->
+  <div class="findings-grid" style="margin-top:2rem">
+    <div class="finding-card">
+      <div class="finding-num">01</div>
+      <div class="finding-icon">🏏</div>
+      <div class="finding-title">The Dual-Threat Elite</div>
+      <div class="finding-body">AB de Villiers is the only player appearing in BOTH the top-5 strike rate (164.27) AND top-5 seasonal average (492 runs) charts. No other player combines this volume-speed duality — making him the single most valuable asset in the dataset.</div>
+      <div class="finding-highlight">ABD: SR 164.27 · 492 avg/season</div>
+    </div>
+    <div class="finding-card">
+      <div class="finding-num">02</div>
+      <div class="finding-icon">🎳</div>
+      <div class="finding-title">The Bowling Blueprint</div>
+      <div class="finding-body">Right-arm medium bowlers dominate with 554 wickets (21.8% share). Legbreak googly delivers 1.85 wkts/match — the most efficient spin style. RCB should prioritise right-arm medium pace + one quality wrist spinner.</div>
+      <div class="finding-highlight">Legbreak googly: 1.85 wkts/match</div>
+    </div>
+    <div class="finding-card">
+      <div class="finding-num">03</div>
+      <div class="finding-icon">🪙</div>
+      <div class="finding-title">Toss Mastery is Free</div>
+      <div class="finding-body">Fielding first wins 54.97% of matches versus just 42.86% when batting first — a 12 percentage point advantage. At Rajiv Gandhi International, batting first wins only 16.7%. Adopt field-first as default policy.</div>
+      <div class="finding-highlight">Field first: +12% win probability</div>
+    </div>
+    <div class="finding-card">
+      <div class="finding-num">04</div>
+      <div class="finding-icon">📉</div>
+      <div class="finding-title">The Trophy-Drought Pattern</div>
+      <div class="finding-body">RCB's runs increased every year (2,460 → 2,859) but wickets FELL (78 → 71). The 2016 Finals loss was not a batting failure — it was a bowling collapse. This single trend explains the entire trophy drought.</div>
+      <div class="finding-highlight">2016: Most runs ever · Fewest wickets · Lost Final</div>
+    </div>
+    <div class="finding-card">
+      <div class="finding-num">05</div>
+      <div class="finding-icon">🏟️</div>
+      <div class="finding-title">Venue Intelligence = Auction Alpha</div>
+      <div class="finding-body">DA Warner at Chinnaswamy averages 52.00 — 35% above his career avg of 38.49. RG Sharma at Eden Gardens: 45.00 (+15.33). Selecting venue specialists for home fixtures directly maximises win probability at zero extra cost.</div>
+      <div class="finding-highlight">Warner at Chinnaswamy: +13.51 above career avg</div>
+    </div>
+    <div class="finding-card">
+      <div class="finding-num">06</div>
+      <div class="finding-icon">⚡</div>
+      <div class="finding-title">Death Overs Are the Battleground</div>
+      <div class="finding-body">Death overs (17–20) yield ~9.8 runs/over versus ~7.2 in the powerplay. A 2-run/over reduction saves 8 runs per innings — often the exact winning margin. Bowlers with sub-8.5 economy in overs 17–20 must be the auction priority.</div>
+      <div class="finding-highlight">Death overs: 9.8 runs/over must be reduced</div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- SEASON BREAKDOWN -->
+<div class="section">
+  <div class="section-header">
+    <span class="sec-num">03</span>
+    <span class="sec-title">Season-by-Season Breakdown</span>
+    <span class="sec-sub">Runs go up · Wickets go down · Trophies stay zero</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="season-grid">
+    <div class="season-card">
+      <div class="season-year">2013</div>
+      <div class="season-stat"><div class="ss-val">9W / 6L</div><div class="ss-lbl">Win-Loss</div></div>
+      <div class="season-stat"><div class="ss-val" style="color:var(--gold)">56.3%</div><div class="ss-lbl">Win Rate</div></div>
+      <div class="win-bar"><div class="win-fill" style="width:56.3%"></div></div>
+      <div class="season-note">Bat + Bowl balanced. 2,460 runs · 78 wickets</div>
+    </div>
+    <div class="season-card">
+      <div class="season-year">2014</div>
+      <div class="season-stat"><div class="ss-val">5W / 9L</div><div class="ss-lbl">Win-Loss</div></div>
+      <div class="season-stat"><div class="ss-val" style="color:var(--red)">35.7%</div><div class="ss-lbl">Win Rate</div></div>
+      <div class="win-bar"><div class="win-fill" style="width:35.7%"></div></div>
+      <div class="season-note">Best bowling year (82 wkts) but batting collapsed. 1,992 runs</div>
+    </div>
+    <div class="season-card">
+      <div class="season-year">2015</div>
+      <div class="season-stat"><div class="ss-val">8W / 6L</div><div class="ss-lbl">Win-Loss</div></div>
+      <div class="season-stat"><div class="ss-val" style="color:var(--gold)">50.0%</div><div class="ss-lbl">Win Rate</div></div>
+      <div class="win-bar"><div class="win-fill" style="width:50%"></div></div>
+      <div class="season-note">Balanced season. Reached playoffs. 2,190 runs · 79 wickets</div>
+    </div>
+    <div class="season-card">
+      <div class="season-year">2016</div>
+      <div class="season-stat"><div class="ss-val">9W / 7L</div><div class="ss-lbl">Win-Loss</div></div>
+      <div class="season-stat"><div class="ss-val" style="color:var(--red)">56.3%</div><div class="ss-lbl">Win Rate</div></div>
+      <div class="win-bar"><div class="win-fill" style="width:56.3%"></div></div>
+      <div class="season-note">Most runs ever (2,859) · Fewest wickets (71) → Lost FINAL 💔</div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- PLAYER EXPLORER -->
+<div class="section" id="players">
+  <div class="section-header">
+    <span class="sec-num">04</span>
+    <span class="sec-title">Interactive Player Explorer</span>
+    <span class="sec-sub">Data from Q5, Q6, Q7, Q8, Q14, Q15 combined</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="table-wrap">
+    <div class="table-toolbar">
+      <div class="tt-left">Player Dataset <span class="tt-badge" id="pCount">Loading…</span></div>
+      <div class="tt-right">
+        <input class="search-box" id="pSearch" placeholder="Search player…" oninput="filterPlayers()">
+        <select class="filter-sel" id="pRole" onchange="filterPlayers()">
+          <option value="">All Roles</option>
+          <option value="Batsman">Batsman</option>
+          <option value="Bowler">Bowler</option>
+          <option value="All-Rounder">All-Rounder</option>
+        </select>
+        <select class="filter-sel" id="pTeam" onchange="filterPlayers()">
+          <option value="">All Teams</option>
+          <option value="RCB">RCB</option>
+          <option value="CSK">CSK</option>
+          <option value="MI">MI</option>
+          <option value="KKR">KKR</option>
+          <option value="SRH">SRH</option>
+        </select>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th onclick="sortPlayers('name')">Player ↕</th>
+            <th onclick="sortPlayers('team')">Team ↕</th>
+            <th onclick="sortPlayers('role')">Role ↕</th>
+            <th onclick="sortPlayers('sr')">Strike Rate ↕</th>
+            <th onclick="sortPlayers('avg')">Avg Runs/Season ↕</th>
+            <th onclick="sortPlayers('wkts')">Wkts/Season ↕</th>
+            <th onclick="sortPlayers('consistency')">Consistency Avg ↕</th>
+            <th>SR Bar</th>
+          </tr>
+        </thead>
+        <tbody id="playerBody"></tbody>
+      </table>
+    </div>
+    <div class="tpag">
+      <span class="tpag-info" id="playerPageInfo">Page 1 of —</span>
+      <div class="tpag-btns">
+        <button class="pg-btn" id="pPrev" onclick="pPrev()" disabled>← Prev</button>
+        <button class="pg-btn" id="pNext" onclick="pNext()">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- RECOMMENDATIONS -->
+<div class="section" id="recommendations">
+  <div class="section-header">
+    <span class="sec-num">05</span>
+    <span class="sec-title">Mega Auction Roadmap</span>
+    <span class="sec-sub">Data-backed squad-building priorities for RCB</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="recs-grid">
+    <div class="rec-card">
+      <div class="rec-priority pri-must">MUST</div>
+      <div class="rec-body">
+        <div class="rec-player">AB de Villiers</div>
+        <div class="rec-role">Middle-Order Batsman · Q5 + Q6</div>
+        <div class="rec-data">Strike Rate 164.27 (4th overall) + 492 avg runs/season (3rd overall). Only player in top-5 of BOTH charts. Unique volume-speed duality across 4 seasons.</div>
+        <div class="rec-impact">Removes single biggest batting risk from squad equation</div>
+      </div>
+    </div>
+    <div class="rec-card">
+      <div class="rec-priority pri-must">MUST</div>
+      <div class="rec-body">
+        <div class="rec-player">Death-Over Specialist Bowler</div>
+        <div class="rec-role">Overs 17–20 · Death Analysis</div>
+        <div class="rec-data">Death overs concede 9.8 runs/over vs 7.2 in powerplay. A 2-run/over reduction saves 8 runs per innings — often the winning margin. Target sub-8.5 economy in overs 17–20.</div>
+        <div class="rec-impact">Saves 8+ runs/innings; directly converts close losses to wins</div>
+      </div>
+    </div>
+    <div class="rec-card">
+      <div class="rec-priority pri-high">HIGH</div>
+      <div class="rec-body">
+        <div class="rec-player">AD Russell</div>
+        <div class="rec-role">Power All-Rounder · Q8 + Q5</div>
+        <div class="rec-data">22.91 runs/match + 1.00 wkt/match (Q8) + SR 163.16 (Q5). Addresses batting depth AND bowling wicket-taking deficit simultaneously — exceptional auction value in one signing.</div>
+        <div class="rec-impact">Single player fixes two structural weaknesses at once</div>
+      </div>
+    </div>
+    <div class="rec-card">
+      <div class="rec-priority pri-high">HIGH</div>
+      <div class="rec-body">
+        <div class="rec-player">SP Narine</div>
+        <div class="rec-role">Lead Spinner · Q7 + Q13</div>
+        <div class="rec-data">15.25 avg wickets/season over 4 seasons (Q7). Economy, consistency, and ability to open bowling make him the most complete spin option. 2.33 wkts/match at Sheikh Zayed (Q13).</div>
+        <div class="rec-impact">Fills spin gap without overspending on unproven alternatives</div>
+      </div>
+    </div>
+    <div class="rec-card">
+      <div class="rec-priority pri-med">MED</div>
+      <div class="rec-body">
+        <div class="rec-player">DA Warner</div>
+        <div class="rec-role">Opener · Q15 Venue Specialist</div>
+        <div class="rec-data">Averages 52.00 at Chinnaswamy (+13.51 above career avg of 38.49). Selecting venue specialists for home fixtures is a free performance uplift with zero additional squad cost.</div>
+        <div class="rec-impact">Home-ground specialist boosts Chinnaswamy win probability</div>
+      </div>
+    </div>
+    <div class="rec-card">
+      <div class="rec-priority pri-med">MED</div>
+      <div class="rec-body">
+        <div class="rec-player">Legbreak Wrist Spinner</div>
+        <div class="rec-role">Bowling Variety · Q10</div>
+        <div class="rec-data">Legbreak googly delivers 1.85 wkts/match — best efficiency of all spin styles (Q10). Increases wicket-taking without budget premium. Complements right-arm medium attack.</div>
+        <div class="rec-impact">Highest per-match wicket return of any spin style in dataset</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quote -->
+  <div style="margin-top:3rem">
+    <div class="quote-block">
+      <div class="quote-text">"RCB doesn't need more <span>stars</span>. They need a <span>system</span>. And the data has just built it."</div>
+      <div class="quote-attr">— Key Conclusion · RCB IPL Strategy Analysis · Adithya Patel · 2025</div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ABOUT -->
+<div class="section" id="about">
+  <div class="section-header">
+    <span class="sec-num">06</span>
+    <span class="sec-title">About This Project</span>
+    <span class="sec-sub">SQL Portfolio · Newton School · March 2025</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="about-grid">
+    <div class="about-card">
+      <h3>📦 Dataset Overview</h3>
+      <p>This project uses a fully relational MySQL database of IPL seasons 2013–2016 comprising 20 interlinked tables, 255 matches, 60,223 ball-by-ball deliveries, and 469 unique players across all franchises.</p>
+      <p style="margin-top:.75rem">The schema includes tables for matches, innings, players, teams, ball-by-ball data, wicket types, extras, venues, toss decisions, and player profiles — enabling multi-dimensional JOIN queries impossible with aggregated scorecards alone.</p>
+      <div class="schema-grid">
+        <div class="schema-item">match</div>
+        <div class="schema-item">ball_by_ball</div>
+        <div class="schema-item">player</div>
+        <div class="schema-item">team</div>
+        <div class="schema-item">wicket_taken</div>
+        <div class="schema-item">venue</div>
+        <div class="schema-item">batting_style</div>
+        <div class="schema-item">bowling_style</div>
+        <div class="schema-item">player_match</div>
+        <div class="schema-item">extra_runs</div>
+        <div class="schema-item">country</div>
+        <div class="schema-item">season</div>
+      </div>
+    </div>
+    <div class="about-card">
+      <h3>🎯 Problem Statement</h3>
+      <p>Royal Challengers Bangalore have one of the most star-studded lineups in IPL history — yet they have NEVER won the title. Using 4 seasons of ball-by-ball data, this project identifies the measurable gaps in their strategy and prescribes data-backed solutions.</p>
+      <p style="margin-top:.75rem">Three core objectives guided the analysis: (1) Batting Intelligence — identifying top performers by average and strike rate; (2) Bowling Effectiveness — analysing styles and venue-specific performance; (3) Strategic Recommendations — translating findings into an auction plan.</p>
+    </div>
+    <div class="about-card">
+      <h3>💡 Key Technical Achievements</h3>
+      <p>This project demonstrates advanced SQL techniques applied to a real-world sports analytics problem. Highlights include multi-table JOINs across 5+ tables, Common Table Expressions (CTEs) for intermediate result reuse, window functions (RANK, LAG, OVER PARTITION BY) for player rankings and year-on-year trend analysis, and STDDEV for consistency measurement.</p>
+      <p style="margin-top:.75rem">Every recommendation is tied to a specific query output — no assumptions, no guesswork, only SQL-verified data evidence.</p>
+    </div>
+    <div class="about-card">
+      <h3>👤 Presented by</h3>
+      <p><strong style="color:var(--text);font-size:1.1rem">Adithya Patel</strong></p>
+      <p style="margin-top:.4rem">Newton School · Data Analytics Portfolio · March 2025</p>
+      <p style="margin-top:1rem">This project is part of a professional data analyst portfolio demonstrating SQL proficiency, analytical thinking, and the ability to translate complex data into clear, actionable business strategy — skills directly applicable to data analyst and BI roles.</p>
+      <div style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:.5rem">
+        <span class="tag sql">MySQL</span>
+        <span class="tag sql">Data Analytics</span>
+        <span class="tag">Sports Analytics</span>
+        <span class="tag">Business Intelligence</span>
+        <span class="tag rcb">IPL</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-left">
+    <strong>Adithya Patel</strong> · RCB IPL Strategy Analysis · SQL Portfolio · Newton School 2026
+  </div>
+  <div class="footer-right">
+    <span>IPL 2013–2016 · 255 Matches · 60K+ Deliveries</span>
+    <span>Built with MySQL · Chart.js</span>
+  </div>
+</footer>
+
+<script>
+/* ─────────────── CHART DEFAULTS ─────────────────── */
+const CD = {
+  responsive:true,
+  plugins:{
+    legend:{display:false},
+    tooltip:{
+      backgroundColor:'#161b22',borderColor:'#30363d',borderWidth:1,
+      titleFont:{family:'JetBrains Mono',size:11},
+      bodyFont:{family:'JetBrains Mono',size:11},
+      titleColor:'#e6edf3',bodyColor:'#7d8590'
+    }
+  },
+  scales:{
+    x:{grid:{color:'rgba(33,38,45,.6)',drawBorder:false},ticks:{color:'#7d8590',font:{family:'JetBrains Mono',size:10}}},
+    y:{grid:{color:'rgba(33,38,45,.6)',drawBorder:false},ticks:{color:'#7d8590',font:{family:'JetBrains Mono',size:10}}}
+  }
+};
+
+/* Strike Rate */
+new Chart(document.getElementById('cSR'),{type:'bar',
+  data:{labels:['KH Pandya','SN Khan','LJ Wright','AB de Villiers','AD Russell','GJ Maxwell','KA Pollard'],
+    datasets:[{data:[186.61,171.84,168.25,164.27,163.16,156.6,142.86],
+      backgroundColor:['rgba(215,38,56,.5)','rgba(215,38,56,.45)','rgba(215,38,56,.4)','rgba(245,166,35,.85)','rgba(215,38,56,.35)','rgba(215,38,56,.3)','rgba(215,38,56,.25)'],
+      borderColor:['#d72638','#d72638','#d72638','#f5a623','#d72638','#d72638','#d72638'],
+      borderWidth:1,borderRadius:5,borderSkipped:false}]},
+  options:{...CD}});
+
+/* Seasonal Avg */
+new Chart(document.getElementById('cAvg'),{type:'bar',
+  data:{labels:['V Kohli','DA Warner','AB de Villiers','RG Sharma','RV Uthappa'],
+    datasets:[{data:[618,587,492,474.75,463],
+      backgroundColor:['rgba(245,166,35,.85)','rgba(88,166,255,.6)','rgba(245,166,35,.6)','rgba(88,166,255,.45)','rgba(88,166,255,.35)'],
+      borderColor:['#f5a623','#58a6ff','#f5a623','#58a6ff','#58a6ff'],
+      borderWidth:1,borderRadius:5,borderSkipped:false}]},
+  options:{...CD,indexAxis:'y'}});
+
+/* Bowlers */
+new Chart(document.getElementById('cBowl'),{type:'bar',
+  data:{labels:['DJ Bravo','SL Malinga','B Kumar','MM Sharma','Harbhajan S.','SP Narine','AR Patel'],
+    datasets:[{data:[25,20,18.5,17.5,16.25,15.25,14.33],
+      backgroundColor:'rgba(63,185,80,.5)',borderColor:'#3fb950',
+      borderWidth:1,borderRadius:5,borderSkipped:false}]},
+  options:{...CD}});
+
+/* Bowling Style */
+new Chart(document.getElementById('cStyle'),{type:'doughnut',
+  data:{labels:['RA Medium','RA Fast-Med','RA Med-Fast','RA Offbreak','SLA Orthodox','RA Fast','Others'],
+    datasets:[{data:[554,333,307,275,250,215,925],
+      backgroundColor:['rgba(215,38,56,.8)','rgba(245,166,35,.75)','rgba(88,166,255,.7)','rgba(63,185,80,.7)','rgba(210,168,255,.65)','rgba(215,38,56,.4)','rgba(33,38,45,.9)'],
+      borderColor:'#0a0c10',borderWidth:2}]},
+  options:{responsive:true,cutout:'55%',plugins:{
+    legend:{display:true,position:'right',labels:{color:'#7d8590',font:{family:'JetBrains Mono',size:10},padding:10,boxWidth:12}},
+    tooltip:{backgroundColor:'#161b22',borderColor:'#30363d',borderWidth:1,titleFont:{family:'JetBrains Mono',size:11},bodyFont:{family:'JetBrains Mono',size:11},titleColor:'#e6edf3',bodyColor:'#7d8590'}
+  }}});
+
+/* Toss */
+new Chart(document.getElementById('cToss'),{type:'bar',
+  data:{labels:['Field First (Won)','Field First (Lost)','Bat First (Won)','Bat First (Lost)'],
+    datasets:[{data:[83,68,42,56],
+      backgroundColor:['rgba(63,185,80,.7)','rgba(63,185,80,.35)','rgba(215,38,56,.5)','rgba(215,38,56,.25)'],
+      borderColor:['#3fb950','#3fb950','#d72638','#d72638'],
+      borderWidth:1,borderRadius:5,borderSkipped:false}]},
+  options:{...CD}});
+
+/* Venue */
+new Chart(document.getElementById('cVenue'),{type:'bar',
+  data:{labels:['Chinnaswamy','Feroz Shah Kotla','MH CA Stadium','Eden Gardens','Wankhede','Rajiv Gandhi'],
+    datasets:[
+      {label:'Wins',data:[15,2,2,2,1,1],backgroundColor:'rgba(63,185,80,.65)',borderColor:'#3fb950',borderWidth:1,borderRadius:[5,5,0,0]},
+      {label:'Losses',data:[11,0,0,1,3,2],backgroundColor:'rgba(215,38,56,.55)',borderColor:'#d72638',borderWidth:1,borderRadius:[5,5,0,0]}
+    ]},
+  options:{...CD,plugins:{...CD.plugins,legend:{display:true,labels:{color:'#7d8590',font:{family:'JetBrains Mono',size:10},padding:12,boxWidth:12}}}}});
+
+/* YoY */
+new Chart(document.getElementById('cYoY'),{type:'line',
+  data:{labels:['2013','2014','2015','2016'],
+    datasets:[
+      {label:'Runs Scored',data:[2460,1992,2190,2859],
+        borderColor:'#f5a623',backgroundColor:'rgba(245,166,35,.08)',
+        borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#f5a623',tension:.3,fill:true},
+      {label:'Wickets (×30)',data:[78*30,82*30,79*30,71*30],
+        borderColor:'#d72638',backgroundColor:'rgba(215,38,56,.06)',
+        borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#d72638',tension:.3,fill:true}
+    ]},
+  options:{...CD,plugins:{...CD.plugins,legend:{display:true,labels:{color:'#7d8590',font:{family:'JetBrains Mono',size:10},padding:12,boxWidth:20}}}}});
+
+/* ─────────────── SQL QUERIES ───────────────────── */
+const SQL_QUERIES = [
+  {name:'Q5 — Strike Rate',code:`<span class="cm">-- Q5: Top batsmen by strike rate (min 100 balls)</span>
+<span class="kw">WITH</span> strike_rates <span class="kw">AS</span> (
+  <span class="kw">SELECT</span>
+    p.player_name,
+    <span class="fn">COUNT</span>(bb.ball_id)              <span class="kw">AS</span> balls_faced,
+    <span class="fn">SUM</span>(bb.runs_scored)            <span class="kw">AS</span> total_runs,
+    <span class="fn">ROUND</span>(
+      <span class="fn">SUM</span>(bb.runs_scored) * <span class="nm">100.0</span> / <span class="fn">COUNT</span>(bb.ball_id), <span class="nm">2</span>
+    )                               <span class="kw">AS</span> strike_rate
+  <span class="kw">FROM</span> ball_by_ball bb
+  <span class="kw">JOIN</span> player p <span class="kw">ON</span> bb.striker_id = p.player_id
+  <span class="kw">WHERE</span> bb.extra_type <span class="kw">NOT IN</span> (<span class="st">'wide'</span>, <span class="st">'noballs'</span>)
+  <span class="kw">GROUP BY</span> p.player_name
+  <span class="kw">HAVING</span> balls_faced >= <span class="nm">100</span>
+)
+<span class="kw">SELECT</span> player_name, balls_faced, total_runs, strike_rate
+<span class="kw">FROM</span>   strike_rates
+<span class="kw">ORDER BY</span> strike_rate <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="nm">10</span>;`},
+  {name:'Q6 — Seasonal Avg',code:`<span class="cm">-- Q6: Average runs per season (min 3 seasons)</span>
+<span class="kw">WITH</span> season_runs <span class="kw">AS</span> (
+  <span class="kw">SELECT</span>
+    p.player_name,
+    m.season_year,
+    <span class="fn">SUM</span>(bb.runs_scored) <span class="kw">AS</span> runs_in_season
+  <span class="kw">FROM</span> ball_by_ball bb
+  <span class="kw">JOIN</span> player  p <span class="kw">ON</span> bb.striker_id  = p.player_id
+  <span class="kw">JOIN</span> match   m <span class="kw">ON</span> bb.match_id    = m.match_id
+  <span class="kw">WHERE</span> bb.extra_type <span class="kw">NOT IN</span> (<span class="st">'wide'</span>,<span class="st">'noballs'</span>)
+  <span class="kw">GROUP BY</span> p.player_name, m.season_year
+)
+<span class="kw">SELECT</span>
+  player_name,
+  <span class="fn">COUNT</span>(season_year)             <span class="kw">AS</span> seasons_played,
+  <span class="fn">ROUND</span>(<span class="fn">AVG</span>(runs_in_season), <span class="nm">2</span>)  <span class="kw">AS</span> avg_runs_per_season
+<span class="kw">FROM</span>   season_runs
+<span class="kw">GROUP BY</span> player_name
+<span class="kw">HAVING</span> seasons_played >= <span class="nm">3</span>
+<span class="kw">ORDER BY</span> avg_runs_per_season <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="nm">10</span>;`},
+  {name:'Q7 — Bowlers',code:`<span class="cm">-- Q7: Top bowlers by avg wickets per season</span>
+<span class="kw">WITH</span> season_wickets <span class="kw">AS</span> (
+  <span class="kw">SELECT</span>
+    p.player_name,
+    m.season_year,
+    <span class="fn">COUNT</span>(wt.wicket_id) <span class="kw">AS</span> wickets_taken
+  <span class="kw">FROM</span> wicket_taken wt
+  <span class="kw">JOIN</span> ball_by_ball bb <span class="kw">ON</span> wt.match_id  = bb.match_id
+                       <span class="kw">AND</span> wt.over_id   = bb.over_id
+                       <span class="kw">AND</span> wt.ball_id   = bb.ball_id
+  <span class="kw">JOIN</span> player p        <span class="kw">ON</span> bb.bowler_id  = p.player_id
+  <span class="kw">JOIN</span> match  m        <span class="kw">ON</span> bb.match_id   = m.match_id
+  <span class="kw">WHERE</span> wt.kind_out <span class="kw">NOT IN</span> (<span class="st">'run out'</span>, <span class="st">'retired hurt'</span>)
+  <span class="kw">GROUP BY</span> p.player_name, m.season_year
+)
+<span class="kw">SELECT</span>
+  player_name,
+  <span class="fn">COUNT</span>(season_year)               <span class="kw">AS</span> seasons,
+  <span class="fn">ROUND</span>(<span class="fn">AVG</span>(wickets_taken), <span class="nm">2</span>)     <span class="kw">AS</span> avg_wickets_per_season
+<span class="kw">FROM</span>   season_wickets
+<span class="kw">GROUP BY</span> player_name
+<span class="kw">HAVING</span> seasons >= <span class="nm">2</span>
+<span class="kw">ORDER BY</span> avg_wickets_per_season <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="nm">10</span>;`},
+  {name:'Q8 — All-Rounders',code:`<span class="cm">-- Q8: All-rounders — players exceeding dataset benchmarks</span>
+<span class="cm">-- Benchmarks: avg_runs/match > 12.56 AND avg_wkts/match > 0.73</span>
+<span class="kw">WITH</span> player_stats <span class="kw">AS</span> (
+  <span class="kw">SELECT</span>
+    p.player_name,
+    <span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> bb.match_id)              <span class="kw">AS</span> matches,
+    <span class="fn">SUM</span>(bb.runs_scored)                        <span class="kw">AS</span> total_runs,
+    <span class="fn">ROUND</span>(<span class="fn">SUM</span>(bb.runs_scored) /
+          <span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> bb.match_id), <span class="nm">2</span>)     <span class="kw">AS</span> runs_per_match,
+    <span class="fn">COUNT</span>(wt.wicket_id)                        <span class="kw">AS</span> total_wickets,
+    <span class="fn">ROUND</span>(<span class="fn">COUNT</span>(wt.wicket_id) /
+          <span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> bb.match_id), <span class="nm">2</span>)     <span class="kw">AS</span> wkts_per_match
+  <span class="kw">FROM</span> ball_by_ball bb
+  <span class="kw">JOIN</span> player p     <span class="kw">ON</span> bb.striker_id = p.player_id
+  <span class="kw">LEFT JOIN</span> wicket_taken wt
+    <span class="kw">ON</span> bb.match_id = wt.match_id <span class="kw">AND</span> bb.bowler_id = wt.fielder_id
+  <span class="kw">GROUP BY</span> p.player_name
+  <span class="kw">HAVING</span> matches >= <span class="nm">10</span>
+)
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> player_stats
+<span class="kw">WHERE</span>  runs_per_match > <span class="nm">12.56</span>
+  <span class="kw">AND</span>  wkts_per_match > <span class="nm">0.73</span>
+<span class="kw">ORDER BY</span> runs_per_match <span class="kw">DESC</span>;`},
+  {name:'Q9 — Venue Record',code:`<span class="cm">-- Q9: RCB's win/loss record broken down by venue</span>
+<span class="kw">SELECT</span>
+  v.venue_name,
+  v.city,
+  <span class="fn">SUM</span>(<span class="kw">CASE WHEN</span> m.match_winner = <span class="st">'Royal Challengers Bangalore'</span>
+           <span class="kw">THEN</span> <span class="nm">1</span> <span class="kw">ELSE</span> <span class="nm">0</span> <span class="kw">END</span>)  <span class="kw">AS</span> wins,
+  <span class="fn">SUM</span>(<span class="kw">CASE WHEN</span> m.match_winner != <span class="st">'Royal Challengers Bangalore'</span>
+           <span class="kw">AND</span>  m.match_winner <span class="kw">IS NOT NULL</span>
+           <span class="kw">THEN</span> <span class="nm">1</span> <span class="kw">ELSE</span> <span class="nm">0</span> <span class="kw">END</span>) <span class="kw">AS</span> losses,
+  <span class="fn">COUNT</span>(m.match_id)                          <span class="kw">AS</span> total_matches,
+  <span class="fn">ROUND</span>(<span class="fn">SUM</span>(<span class="kw">CASE WHEN</span> m.match_winner = <span class="st">'Royal Challengers Bangalore'</span>
+                   <span class="kw">THEN</span> <span class="nm">1</span> <span class="kw">ELSE</span> <span class="nm">0</span> <span class="kw">END</span>) * <span class="nm">100.0</span>
+             / <span class="fn">COUNT</span>(m.match_id), <span class="nm">1</span>)         <span class="kw">AS</span> win_pct
+<span class="kw">FROM</span> match m
+<span class="kw">JOIN</span> venue v <span class="kw">ON</span> m.venue_id = v.venue_id
+<span class="kw">WHERE</span> (m.team1 = <span class="st">'Royal Challengers Bangalore'</span>
+    <span class="kw">OR</span>  m.team2 = <span class="st">'Royal Challengers Bangalore'</span>)
+<span class="kw">GROUP BY</span> v.venue_name, v.city
+<span class="kw">ORDER BY</span> total_matches <span class="kw">DESC</span>;`},
+  {name:'Q10 — Bowl Style',code:`<span class="cm">-- Q10: Wickets by bowling style (effectiveness analysis)</span>
+<span class="kw">SELECT</span>
+  bs.bowling_skill                        <span class="kw">AS</span> bowling_style,
+  <span class="fn">COUNT</span>(wt.wicket_id)                     <span class="kw">AS</span> total_wickets,
+  <span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> p.player_id)             <span class="kw">AS</span> bowlers_count,
+  <span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> bb.match_id)             <span class="kw">AS</span> matches_bowled,
+  <span class="fn">ROUND</span>(<span class="fn">COUNT</span>(wt.wicket_id) /
+        <span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> bb.match_id), <span class="nm">2</span>)   <span class="kw">AS</span> wkts_per_match
+<span class="kw">FROM</span> ball_by_ball bb
+<span class="kw">JOIN</span> player p          <span class="kw">ON</span> bb.bowler_id       = p.player_id
+<span class="kw">JOIN</span> bowling_style bs   <span class="kw">ON</span> p.bowling_skill_id  = bs.bowling_skill_id
+<span class="kw">LEFT JOIN</span> wicket_taken wt
+  <span class="kw">ON</span>  bb.match_id = wt.match_id
+  <span class="kw">AND</span> bb.over_id  = wt.over_id
+  <span class="kw">AND</span> bb.ball_id  = wt.ball_id
+  <span class="kw">AND</span> wt.kind_out <span class="kw">NOT IN</span> (<span class="st">'run out'</span>, <span class="st">'retired hurt'</span>)
+<span class="kw">GROUP BY</span> bs.bowling_skill
+<span class="kw">ORDER BY</span> total_wickets <span class="kw">DESC</span>;`},
+  {name:'Q11 — YoY Trend',code:`<span class="cm">-- Q11: RCB year-on-year performance trend (LAG window function)</span>
+<span class="kw">WITH</span> rcb_season <span class="kw">AS</span> (
+  <span class="kw">SELECT</span>
+    m.season_year,
+    <span class="fn">SUM</span>(bb.runs_scored)       <span class="kw">AS</span> total_runs,
+    <span class="fn">COUNT</span>(wt.wicket_id)        <span class="kw">AS</span> total_wickets,
+    <span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> m.match_id) <span class="kw">AS</span> matches_played
+  <span class="kw">FROM</span> match m
+  <span class="kw">JOIN</span> ball_by_ball bb <span class="kw">ON</span> bb.match_id = m.match_id
+                       <span class="kw">AND</span> bb.team_batting = <span class="st">'Royal Challengers Bangalore'</span>
+  <span class="kw">LEFT JOIN</span> wicket_taken wt
+    <span class="kw">ON</span> bb.match_id = wt.match_id
+    <span class="kw">AND</span> bb.over_id  = wt.over_id
+    <span class="kw">AND</span> wt.kind_out <span class="kw">NOT IN</span> (<span class="st">'run out'</span>,<span class="st">'retired hurt'</span>)
+  <span class="kw">WHERE</span> (m.team1 = <span class="st">'Royal Challengers Bangalore'</span>
+      <span class="kw">OR</span> m.team2 = <span class="st">'Royal Challengers Bangalore'</span>)
+  <span class="kw">GROUP BY</span> m.season_year
+)
+<span class="kw">SELECT</span>
+  season_year, total_runs, total_wickets, matches_played,
+  <span class="fn">LAG</span>(total_runs)    <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> season_year) <span class="kw">AS</span> prev_runs,
+  <span class="fn">LAG</span>(total_wickets) <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> season_year) <span class="kw">AS</span> prev_wickets,
+  total_runs - <span class="fn">LAG</span>(total_runs) <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> season_year) <span class="kw">AS</span> runs_delta,
+  total_wickets - <span class="fn">LAG</span>(total_wickets) <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> season_year) <span class="kw">AS</span> wkt_delta
+<span class="kw">FROM</span> rcb_season
+<span class="kw">ORDER BY</span> season_year;`},
+  {name:'Q14 — Consistency',code:`<span class="cm">-- Q14: Consistent players (3+ seasons, STDDEV for variance)</span>
+<span class="kw">WITH</span> match_runs <span class="kw">AS</span> (
+  <span class="kw">SELECT</span>
+    p.player_name,
+    bb.match_id,
+    <span class="fn">SUM</span>(bb.runs_scored) <span class="kw">AS</span> runs_this_match
+  <span class="kw">FROM</span> ball_by_ball bb
+  <span class="kw">JOIN</span> player p <span class="kw">ON</span> bb.striker_id = p.player_id
+  <span class="kw">WHERE</span> bb.extra_type <span class="kw">NOT IN</span> (<span class="st">'wide'</span>, <span class="st">'noballs'</span>)
+  <span class="kw">GROUP BY</span> p.player_name, bb.match_id
+),
+season_count <span class="kw">AS</span> (
+  <span class="kw">SELECT</span>
+    p.player_name,
+    <span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> m.season_year) <span class="kw">AS</span> seasons
+  <span class="kw">FROM</span> ball_by_ball bb
+  <span class="kw">JOIN</span> player p <span class="kw">ON</span> bb.striker_id = p.player_id
+  <span class="kw">JOIN</span> match  m <span class="kw">ON</span> bb.match_id   = m.match_id
+  <span class="kw">GROUP BY</span> p.player_name
+  <span class="kw">HAVING</span> seasons >= <span class="nm">3</span>
+)
+<span class="kw">SELECT</span>
+  mr.player_name,
+  <span class="fn">ROUND</span>(<span class="fn">AVG</span>(mr.runs_this_match), <span class="nm">2</span>)    <span class="kw">AS</span> avg_runs_per_match,
+  <span class="fn">ROUND</span>(<span class="fn">STDDEV</span>(mr.runs_this_match), <span class="nm">2</span>) <span class="kw">AS</span> std_deviation,
+  sc.seasons
+<span class="kw">FROM</span>       match_runs mr
+<span class="kw">JOIN</span> season_count sc <span class="kw">USING</span> (player_name)
+<span class="kw">GROUP BY</span> mr.player_name, sc.seasons
+<span class="kw">ORDER BY</span> avg_runs_per_match <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="nm">15</span>;`},
+  {name:'SQ1 — Toss Impact',code:`<span class="cm">-- SQ1: Toss decision → win rate (field vs bat first)</span>
+<span class="kw">SELECT</span>
+  toss_decision,
+  <span class="fn">COUNT</span>(*)                                          <span class="kw">AS</span> total_matches,
+  <span class="fn">SUM</span>(<span class="kw">CASE WHEN</span> toss_winner = match_winner
+           <span class="kw">THEN</span> <span class="nm">1</span> <span class="kw">ELSE</span> <span class="nm">0</span> <span class="kw">END</span>)                       <span class="kw">AS</span> toss_winner_won,
+  <span class="fn">SUM</span>(<span class="kw">CASE WHEN</span> toss_winner != match_winner
+           <span class="kw">AND</span>  match_winner <span class="kw">IS NOT NULL</span>
+           <span class="kw">THEN</span> <span class="nm">1</span> <span class="kw">ELSE</span> <span class="nm">0</span> <span class="kw">END</span>)                       <span class="kw">AS</span> toss_winner_lost,
+  <span class="fn">ROUND</span>(
+    <span class="fn">SUM</span>(<span class="kw">CASE WHEN</span> toss_winner = match_winner
+             <span class="kw">THEN</span> <span class="nm">1</span> <span class="kw">ELSE</span> <span class="nm">0</span> <span class="kw">END</span>) * <span class="nm">100.0</span>
+      / <span class="fn">COUNT</span>(*), <span class="nm">2</span>
+  )                                                  <span class="kw">AS</span> win_pct_if_toss_won
+<span class="kw">FROM</span>   match
+<span class="kw">WHERE</span>  match_winner <span class="kw">IS NOT NULL</span>
+<span class="kw">GROUP BY</span> toss_decision
+<span class="kw">ORDER BY</span> win_pct_if_toss_won <span class="kw">DESC</span>;`}
+];
+
+function showQuery(idx){
+  document.querySelectorAll('.sql-tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  document.getElementById('sqlDisplay').innerHTML =
+    `<pre>${SQL_QUERIES[idx].code}</pre>`;
+}
+function copySQL(){
+  const txt = document.getElementById('sqlDisplay').innerText;
+  navigator.clipboard.writeText(txt).then(()=>{
+    const b = document.querySelector('.copy-btn');
+    b.textContent='Copied!';setTimeout(()=>b.textContent='Copy',1500);
+  });
+}
+showQuery(0);
+
+/* ─────────────── PLAYER DATA ───────────────────── */
+const PLAYERS = [
+  {name:'AB de Villiers',team:'RCB',role:'Batsman',sr:164.27,avg:492,wkts:0,cons:34.53},
+  {name:'V Kohli',team:'RCB',role:'Batsman',sr:133.2,avg:618,wkts:0,cons:39.87},
+  {name:'CH Gayle',team:'RCB',role:'Batsman',sr:152.4,avg:390,wkts:0,cons:33.35},
+  {name:'KH Pandya',team:'MI',role:'All-Rounder',sr:186.61,avg:210,wkts:12,cons:22.1},
+  {name:'SN Khan',team:'CSK',role:'Batsman',sr:171.84,avg:280,wkts:0,cons:21.5},
+  {name:'LJ Wright',team:'KKR',role:'Batsman',sr:168.25,avg:320,wkts:0,cons:28.4},
+  {name:'AD Russell',team:'KKR',role:'All-Rounder',sr:163.16,avg:230,wkts:18,cons:22.91},
+  {name:'GJ Maxwell',team:'MI',role:'All-Rounder',sr:156.6,avg:310,wkts:8,cons:26.3},
+  {name:'KA Pollard',team:'MI',role:'All-Rounder',sr:142.86,avg:340,wkts:15,cons:29.1},
+  {name:'DA Warner',team:'SRH',role:'Batsman',sr:139.8,avg:587,wkts:0,cons:38.49},
+  {name:'RG Sharma',team:'MI',role:'Batsman',sr:128.4,avg:474.75,wkts:0,cons:29.67},
+  {name:'RV Uthappa',team:'KKR',role:'Batsman',sr:135.2,avg:463,wkts:0,cons:31.2},
+  {name:'DJ Bravo',team:'CSK',role:'All-Rounder',sr:131.5,avg:180,wkts:25,cons:18.5},
+  {name:'SL Malinga',team:'MI',role:'Bowler',sr:0,avg:0,wkts:20,cons:0},
+  {name:'B Kumar',team:'SRH',role:'Bowler',sr:0,avg:0,wkts:18.5,cons:0},
+  {name:'MM Sharma',team:'SRH',role:'Bowler',sr:0,avg:0,wkts:17.5,cons:0},
+  {name:'Harbhajan Singh',team:'MI',role:'Bowler',sr:0,avg:0,wkts:16.25,cons:0},
+  {name:'SP Narine',team:'KKR',role:'Bowler',sr:0,avg:0,wkts:15.25,cons:0},
+  {name:'AR Patel',team:'RCB',role:'Bowler',sr:0,avg:0,wkts:14.33,cons:0},
+  {name:'LMP Simmons',team:'MI',role:'All-Rounder',sr:141.2,avg:310,wkts:14,cons:42.82},
+  {name:'MP Stoinis',team:'RCB',role:'All-Rounder',sr:138.4,avg:220,wkts:16,cons:29.2},
+  {name:'SR Watson',team:'RCB',role:'All-Rounder',sr:143.1,avg:280,wkts:14,cons:24.81},
+  {name:'Azhar Mahmood',team:'KKR',role:'All-Rounder',sr:128.3,avg:190,wkts:18,cons:18.36},
+  {name:'MEK Hussey',team:'CSK',role:'Batsman',sr:130.5,avg:380,wkts:0,cons:33.97},
+  {name:'AM Rahane',team:'RR',role:'Batsman',sr:119.8,avg:350,wkts:0,cons:32.4},
+];
+
+const MAX_SR = Math.max(...PLAYERS.map(p=>p.sr));
+let pFiltered=[...PLAYERS], pPage=1, pPageSize=10, pSortKey='avg', pSortAsc=false;
+
+function filterPlayers(){
+  const q=document.getElementById('pSearch').value.toLowerCase();
+  const role=document.getElementById('pRole').value;
+  const team=document.getElementById('pTeam').value;
+  pFiltered=PLAYERS.filter(p=>
+    (!q||p.name.toLowerCase().includes(q))&&
+    (!role||p.role===role)&&
+    (!team||p.team===team)
+  );
+  pPage=1;renderPlayers();
+}
+function sortPlayers(k){
+  if(pSortKey===k)pSortAsc=!pSortAsc;else{pSortKey=k;pSortAsc=false;}
+  pFiltered.sort((a,b)=>{
+    const v1=a[k],v2=b[k];
+    return pSortAsc?v1-v2:v2-v1;
+  });
+  renderPlayers();
+}
+function pPrev(){if(pPage>1){pPage--;renderPlayers();}}
+function pNext(){const t=Math.ceil(pFiltered.length/pPageSize);if(pPage<t){pPage++;renderPlayers();}}
+function roleBadge(r){
+  if(r==='Batsman')return'<span class="role-badge role-bat">Batsman</span>';
+  if(r==='Bowler')return'<span class="role-badge role-bowl">Bowler</span>';
+  return'<span class="role-badge role-all">All-Rounder</span>';
+}
+function renderPlayers(){
+  const total=pFiltered.length;
+  const pages=Math.ceil(total/pPageSize)||1;
+  const rows=pFiltered.slice((pPage-1)*pPageSize,(pPage)*pPageSize);
+  document.getElementById('pCount').textContent=`${total} players`;
+  document.getElementById('playerPageInfo').textContent=`Page ${pPage} of ${pages}`;
+  document.getElementById('pPrev').disabled=pPage<=1;
+  document.getElementById('pNext').disabled=pPage>=pages;
+  document.getElementById('playerBody').innerHTML=rows.map(p=>{
+    const fill=p.sr?Math.round(p.sr/MAX_SR*100):0;
+    return`<tr>
+      <td style="font-weight:600;color:var(--text)">${p.name}</td>
+      <td><span style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted)">${p.team}</span></td>
+      <td>${roleBadge(p.role)}</td>
+      <td style="color:${p.sr>=160?'var(--gold)':p.sr>=130?'var(--text)':'var(--muted)'}">${p.sr||'—'}</td>
+      <td style="color:${p.avg>=500?'var(--gold)':p.avg>=300?'var(--text)':'var(--muted)'}">${p.avg||'—'}</td>
+      <td style="color:${p.wkts>=18?'var(--green)':p.wkts>=10?'var(--text)':'var(--muted)'}">${p.wkts||'—'}</td>
+      <td style="color:var(--muted)">${p.cons||'—'}</td>
+      <td>
+        <div class="bar-cell">
+          <div class="mini-bar"><div class="mini-fill" style="width:${fill}%"></div></div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--muted)">${p.sr||'—'}</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+sortPlayers('avg');
+</script>
+</body>
+</html>
